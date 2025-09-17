@@ -73,3 +73,36 @@ def predict(data: Transaction):
 
     return {"label": prediction, "probability": float(probability)}
 
+
+    from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+import joblib
+import numpy as np
+
+app = FastAPI()
+
+# Allow frontend to call backend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Load model
+model = joblib.load("fraud_model.joblib")
+
+@app.get("/")
+def home():
+    return {"message": "✅ Fraud Detection Backend is running!"}
+
+@app.post("/predict")
+def predict(data: dict):
+    features = np.array([list(data.values())]).astype(float)
+    probability = model.predict_proba(features)[0][1]
+    threshold = 0.3
+    label = 1 if probability >= threshold else 0
+    return {"label": label, "probability": float(probability)}
+
+
