@@ -1,30 +1,24 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
-import joblib
-import numpy as np
-from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import joblib
 import numpy as np
-from pydantic import BaseModel
 
 app = FastAPI()
 
-# ✅ Allow frontend to talk to backend
+# ✅ Allow frontend to call backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # or ["http://localhost:3000"] for stricter security
+    allow_origins=["*"],  # you can restrict this later for security
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
-# Load your trained model (you'll create fraud_model.joblib later)
+# ✅ Load trained model
 model = joblib.load("fraud_model.joblib")
 
-app = FastAPI()
-
+# ✅ Data schema for input validation
 class Transaction(BaseModel):
     Time: float
     V1: float
@@ -57,6 +51,12 @@ class Transaction(BaseModel):
     V28: float
     Amount: float
 
+# ✅ Home route
+@app.get("/")
+def home():
+    return {"message": "✅ Fraud Detection Backend is running!"}
+
+# ✅ Prediction route
 @app.post("/predict")
 def predict(data: Transaction):
     features = np.array([[data.Time, data.V1, data.V2, data.V3, data.V4, data.V5,
@@ -67,42 +67,7 @@ def predict(data: Transaction):
     
     probability = model.predict_proba(features)[0][1]
 
-    # ✅ Custom threshold (instead of 0.5)
-    threshold = 0.3  
+    threshold = 0.3  # ✅ custom threshold
     prediction = 1 if probability >= threshold else 0
 
     return {"label": prediction, "probability": float(probability)}
-
-
-    from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-import joblib
-import numpy as np
-
-app = FastAPI()
-
-# Allow frontend to call backend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Load model
-model = joblib.load("fraud_model.joblib")
-
-@app.get("/")
-def home():
-    return {"message": "✅ Fraud Detection Backend is running!"}
-
-@app.post("/predict")
-def predict(data: dict):
-    features = np.array([list(data.values())]).astype(float)
-    probability = model.predict_proba(features)[0][1]
-    threshold = 0.3
-    label = 1 if probability >= threshold else 0
-    return {"label": label, "probability": float(probability)}
-
-
